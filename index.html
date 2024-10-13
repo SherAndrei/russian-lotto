@@ -3,91 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Number Generator</title>
+    <title>Russian Lotto</title>
+    <style>
+        #cards-container {
+            display: flex;
+            flex-direction: column; /* Stack cards vertically */
+            align-items: center;    /* Center cards horizontally */
+        }
+
+        .card {
+            margin: 10px;
+            border: 2px solid #000;
+            padding: 10px;
+        }
+
+        .row {
+            display: flex;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2px;
+        }
+
+        .chip {
+            background-color: green;
+            color: white;
+        }
+
+        #generate-btn, #share-btn {
+            margin: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Random Number Generator</h1>
-    <button id="generate-btn">Get Random Number</button>
-    <p id="random-number"></p>
+
+    <h1>Russian Lotto Game</h1>
+    <button id="generate-btn">Generate Number</button>
     <button id="share-btn" style="display:none;">Share</button>
-    <p id="link"></p>
+    <p id="random-number"></p>
+    <div id="cards-container"></div>
 
     <script>
         const amount_of_numbers = 27;
-        let generatedNumbers = new Set();
+        const numbers_per_row = 5;
+        const columns_per_card = 9;
+        const rows_per_card = 3;
 
-        // Generate random number and display it
-        function getRandomNumber() {
-            if (generatedNumbers.size == amount_of_numbers) {
-                alert(`The number of numbers generated exceeded ${amount_of_numbers}`);
+        let generatedNumbers = new Set();
+        let drawnNumber = null;  // Keep track of the current number
+        let uniqueNumbers = shuffle(Array.from({ length: amount_of_numbers }, (_, i) => i + 1));
+        const cards = [];
+
+        // Helper function to shuffle array elements
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function displayCards(generated_cards) {
+            const num_cards = generated_cards.length;
+
+            for (let cardIndex = 0; cardIndex < num_cards; cardIndex++) {
+                const card = document.createElement('div');
+                card.classList.add('card');
+
+                for (let row = 0; row < rows_per_card; row++) {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.classList.add('row');
+                    const cols = generated_cards[cardIndex][row];
+                    cols.forEach(num => {
+                        const cell = document.createElement('div');
+                        cell.classList.add('cell');
+                        if (num !== null) {
+                            cell.textContent = num;
+                            cell.dataset.number = num;
+                        }
+                        rowDiv.appendChild(cell);
+                    });
+
+                    card.appendChild(rowDiv);
+                }
+
+                document.getElementById('cards-container').appendChild(card);
+                cards.push(card);
+            }
+        }
+
+        function generateRawCards() {
+            const num_cards = Math.ceil(amount_of_numbers / (rows_per_card * numbers_per_row));
+            let currentIndex = 0;
+            let cards = [];
+
+            for (let cardIndex = 0; cardIndex < num_cards; cardIndex++) {
+                card = [];
+                for (let row = 0; row < rows_per_card; row++) {
+                    let rowNumbers = [];
+                    if (currentIndex + numbers_per_row <= uniqueNumbers.length) {
+                        rowNumbers = uniqueNumbers.slice(currentIndex, currentIndex + numbers_per_row);
+                        currentIndex += numbers_per_row;
+                    } else {
+                        rowNumbers = uniqueNumbers.slice(currentIndex);
+                        currentIndex = uniqueNumbers.length;
+                    }
+
+                    const cols = Array(columns_per_card).fill(null);
+                    rowNumbers.forEach(num => {
+                        let colIndex;
+                        do {
+                            colIndex = Math.floor(Math.random() * columns_per_card);
+                        } while (cols[colIndex] !== null); 
+                        cols[colIndex] = num;
+                    });
+
+                    card.push(cols);
+                }
+                cards.push(card);
+            }
+            return cards;
+        }
+
+        // Generate a random number and update the board
+        function generateRandomNumber() {
+            if (generatedNumbers.size === amount_of_numbers) {
+                alert("All numbers have been generated!");
                 return;
             }
+
             let randomNumber;
             do {
                 randomNumber = Math.floor(Math.random() * amount_of_numbers) + 1;
             } while (generatedNumbers.has(randomNumber));
 
+            removeChip(drawnNumber);
+            drawnNumber = randomNumber; // Store the drawn number
+            addChip(randomNumber);
             document.getElementById("random-number").textContent = "Generated number: " + randomNumber;
-            document.getElementById("share-btn").style.display = "inline";  // Show share button
-            return randomNumber;
+            document.getElementById("share-btn").style.display = "inline"; // Show share button
         }
 
-        document.getElementById("generate-btn").addEventListener("click", getRandomNumber);
-
-        const n_letters_in_alphabet = 26;
-
-        function encode(integer) {
-            if (integer < 1 || integer >= 2 * n_letters_in_alphabet) {
-                throw new Error(`Number out of range: ${integer}`);
-            }
-            const add_to_small_letters = integer <= n_letters_in_alphabet;
-            const starting_letter = add_to_small_letters ? 97 : 65;
-            return String.fromCharCode(starting_letter + ((integer - 1) % n_letters_in_alphabet));
+        function removeChip(number) {
+            cards.forEach(card => {
+                const cells = card.querySelectorAll('.cell');
+                cells.forEach(cell => {
+                    if (Number(cell.dataset.number) === number) {
+                        cell.classList.remove('chip');
+                    }
+                });
+            });
         }
 
-        function decode(char) {
-            if (char.length !== 1) {
-                throw new Error("Input should be a single character");
-            }
-            const integer = char.charCodeAt(0);
-            const is_small_letter = integer >= 97 && integer < (97 + n_letters_in_alphabet);
-            const is_large_letter = integer >= 65 && integer < (65 + n_letters_in_alphabet);
-            if (!is_small_letter && !is_large_letter) {
-                throw new Error("Character out of range for decoding");
-            }
-            const starting_letter = is_small_letter ? 97 : 65;
-            if (is_small_letter)
-                return integer - starting_letter + 1;
-            return integer - starting_letter + 1 + n_letters_in_alphabet;
+        function addChip(number) {
+            cards.forEach(card => {
+                const cells = card.querySelectorAll('.cell');
+                cells.forEach(cell => {
+                    if (Number(cell.dataset.number) === number) {
+                        cell.classList.add('chip');
+                    }
+                });
+            });
         }
 
-        // Generate the shareable link
-        document.getElementById("share-btn").addEventListener("click", function() {
+        // Generate shareable link and update URL
+        function generateShareLink() {
             const randomNumber = Number(document.getElementById("random-number").textContent.split(": ")[1]);
-
-            console.assert(!generatedNumbers.has(randomNumber));
             generatedNumbers.add(randomNumber);
 
-            const queryString = Array.from(generatedNumbers).map(encode).join('');
-            history.pushState({}, '', `${window.location.pathname}?${queryString}`);
-            document.getElementById("link").innerHTML = `<a href="${window.location.href}">Share this number</a>`;
-        });
+            const state = btoa(JSON.stringify(Array.from(generatedNumbers)));
+            let params = new URLSearchParams(window.location.search);
+            params.set('state', state);
+            history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+        }
 
-        // Display the shared number if the link is used
+        document.getElementById('generate-btn').addEventListener('click', generateRandomNumber);
+        document.getElementById('share-btn').addEventListener('click', generateShareLink);
+
+        // On load, parse the URL to restore the board
         window.onload = function() {
-            let search_string = `${window.location.search}`;
-            if (search_string.length == 0)
-                return;
-            console.assert(search_string.charAt(0) == '?');
-            search_string = search_string.substring(1); // strip '?'
-            for (const letter of search_string) {
-                const integer = decode(letter);
-                if (generatedNumbers.has(integer)) {
-                    console.warn(`Number ${integer} has already been generated!`);
+            let params = new URLSearchParams(window.location.search);
+            const encodedCards = params.get('cards');
+            const rawCards = (() => {
+                if (encodedCards)
+                    return JSON.parse(atob(encodedCards));
+                const newlyGenerated = generateRawCards();
+                const newlyEncoded = btoa(JSON.stringify(newlyGenerated));
+                params.set('cards', newlyEncoded);
+                history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+                return newlyGenerated;
+            })();
+            displayCards(rawCards);
+
+            const encodedNumbers = params.get('state');
+            if (encodedNumbers) {
+                generatedNumbers = new Set(JSON.parse(atob(encodedNumbers)));
+                for (const number of generatedNumbers) {
+                    addChip(number);
                 }
-                generatedNumbers.add(integer);
             }
-            document.getElementById("random-number").textContent = "Previously generated numbers: " + Array.from(generatedNumbers).join(', ');
         };
     </script>
 </body>

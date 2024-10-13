@@ -13,13 +13,18 @@
     <p id="link"></p>
 
     <script>
+        const amount_of_numbers = 27;
         let generatedNumbers = new Set();
 
         // Generate random number and display it
         function getRandomNumber() {
+            if (generatedNumbers.size == amount_of_numbers) {
+                alert(`The number of numbers generated exceeded ${amount_of_numbers}`);
+                return;
+            }
             let randomNumber;
             do {
-                randomNumber = Math.floor(Math.random() * 27) + 1;
+                randomNumber = Math.floor(Math.random() * amount_of_numbers) + 1;
             } while (generatedNumbers.has(randomNumber));
 
             generatedNumbers.add(randomNumber);
@@ -30,21 +35,52 @@
 
         document.getElementById("generate-btn").addEventListener("click", getRandomNumber);
 
+        const n_letters_in_alphabet = 26;
+
+        function encode(integer) {
+            console.assert(integer >= 1);
+            console.assert(integer < 2 * n_letters_in_alphabet);
+            const add_to_small_letters = integer <= n_letters_in_alphabet;
+            const starting_letter = add_to_small_letters ? 97 : 65;
+            return String.fromCharCode(starting_letter + ((integer - 1) % n_letters_in_alphabet));
+        }
+
+        function decode(char) {
+            console.assert(char.length === 1);
+            const integer = char.charCodeAt(0);
+            console.log(integer);
+            const is_small_letter = integer >= 97 && integer < (97 + n_letters_in_alphabet);
+            const starting_letter = is_small_letter ? 97 : 65;
+            if (is_small_letter)
+                return integer - starting_letter + 1;
+            return integer - starting_letter + 1 + n_letters_in_alphabet;
+        }
+
         // Generate the shareable link
         document.getElementById("share-btn").addEventListener("click", function() {
-            const randomNumber = document.getElementById("random-number").textContent.split(": ")[1];
-            const shareLink = `${window.location.href}?number=${randomNumber}`;
-            document.getElementById("link").innerHTML = `<a href="${shareLink}">Share this number</a>`;
+            const randomNumber = Number(document.getElementById("random-number").textContent.split(": ")[1]);
+            const letter = encode(randomNumber);
+            let share_link = `${window.location.href}`;
+            const query_string_pos = share_link.search('\\?');
+            if (query_string_pos === -1)
+                share_link = share_link.concat('?');
+            share_link = share_link.concat(letter.toString());
+            document.getElementById("link").innerHTML = `<a href="${share_link}">Share this number</a>`;
         });
 
         // Display the shared number if the link is used
         window.onload = function() {
-            const params = new URLSearchParams(window.location.search);
-            const number = params.get("number");
-
-            if (number) {
-                document.getElementById("random-number").textContent = "Shared number: " + number;
+            let search_string = `${window.location.search}`;
+            if (search_string.length == 0)
+                return;
+            console.assert(search_string.charAt(0) == '?');
+            search_string = search_string.substring(1); // strip '?'
+            for (const letter of search_string) {
+                const integer = decode(letter);
+                console.assert(!generatedNumbers.has(integer));
+                generatedNumbers.add(integer);
             }
+            document.getElementById("random-number").textContent = "Previously generated: " + Array.from(generatedNumbers).join(', ');
         };
     </script>
 </body>

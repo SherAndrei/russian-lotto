@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Number Generator</title>
+</head>
+<body>
+    <h1>Random Number Generator</h1>
+    <button id="generate-btn">Get Random Number</button>
+    <p id="random-number"></p>
+    <button id="share-btn" style="display:none;">Share</button>
+    <p id="link"></p>
+
+    <script>
+        let generatedNumbers = new Set();
+
+        // Generate random number and display it
+        function getRandomNumber() {
+            let randomNumber;
+            do {
+                randomNumber = Math.floor(Math.random() * 27) + 1;
+            } while (generatedNumbers.has(randomNumber));
+
+            generatedNumbers.add(randomNumber);
+            document.getElementById("random-number").textContent = "Generated number: " + randomNumber;
+            document.getElementById("share-btn").style.display = "inline";  // Show share button
+            return randomNumber;
+        }
+
+        document.getElementById("generate-btn").addEventListener("click", getRandomNumber);
+
+        // Generate the shareable link
+        document.getElementById("share-btn").addEventListener("click", function() {
+            const randomNumber = document.getElementById("random-number").textContent.split(": ")[1];
+            const shareLink = `${window.location.href}?number=${randomNumber}`;
+            document.getElementById("link").innerHTML = `<a href="${shareLink}">Share this number</a>`;
+        });
+
+        // Display the shared number if the link is used
+        window.onload = function() {
+            const params = new URLSearchParams(window.location.search);
+            const number = params.get("number");
+
+            if (number) {
+                document.getElementById("random-number").textContent = "Shared number: " + number;
+            }
+        };
+    </script>
+</body>
+</html>

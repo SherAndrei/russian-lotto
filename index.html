@@ -45,7 +45,6 @@
 
     <h1>Russian Lotto Game</h1>
     <button id="generate-btn">Generate Number</button>
-    <button id="share-btn" style="display:none;">Share</button>
     <p id="random-number"></p>
     <div id="cards-container"></div>
 
@@ -54,6 +53,7 @@
         const numbers_per_row = 5;
         const columns_per_card = 9;
         const rows_per_card = 3;
+        const num_cards = Math.ceil(amount_of_numbers / (rows_per_card * numbers_per_row));
 
         let generatedNumbers = new Set();
         let drawnNumber = null;  // Keep track of the current number
@@ -70,8 +70,6 @@
         }
 
         function displayCards(generated_cards) {
-            const num_cards = generated_cards.length;
-
             for (let cardIndex = 0; cardIndex < num_cards; cardIndex++) {
                 const card = document.createElement('div');
                 card.classList.add('card');
@@ -99,7 +97,6 @@
         }
 
         function generateRawCards() {
-            const num_cards = Math.ceil(amount_of_numbers / (rows_per_card * numbers_per_row));
             let currentIndex = 0;
             let cards = [];
 
@@ -144,10 +141,19 @@
             } while (generatedNumbers.has(randomNumber));
 
             removeChip(drawnNumber);
-            drawnNumber = randomNumber; // Store the drawn number
+            generatedNumbers.delete(drawnNumber);
+
+            drawnNumber = randomNumber;
+
             addChip(randomNumber);
+            generatedNumbers.add(randomNumber);
+
+            const state = btoa(JSON.stringify(Array.from(generatedNumbers)));
+            let params = new URLSearchParams(window.location.search);
+            params.set('state', state);
+            history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+
             document.getElementById("random-number").textContent = "Generated number: " + randomNumber;
-            document.getElementById("share-btn").style.display = "inline"; // Show share button
         }
 
         function removeChip(number) {
@@ -172,27 +178,20 @@
             });
         }
 
-        // Generate shareable link and update URL
-        function generateShareLink() {
-            const randomNumber = Number(document.getElementById("random-number").textContent.split(": ")[1]);
-            generatedNumbers.add(randomNumber);
-
-            const state = btoa(JSON.stringify(Array.from(generatedNumbers)));
-            let params = new URLSearchParams(window.location.search);
-            params.set('state', state);
-            history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
-        }
-
         document.getElementById('generate-btn').addEventListener('click', generateRandomNumber);
-        document.getElementById('share-btn').addEventListener('click', generateShareLink);
 
         // On load, parse the URL to restore the board
         window.onload = function() {
             let params = new URLSearchParams(window.location.search);
             const encodedCards = params.get('cards');
             const rawCards = (() => {
-                if (encodedCards)
-                    return JSON.parse(atob(encodedCards));
+                if (encodedCards) {
+                    try {
+                        return JSON.parse(atob(encodedCards));
+                    } catch (e) {
+                        console.error("Error decoding cards from URL: ", e);
+                    }
+                }
                 const newlyGenerated = generateRawCards();
                 const newlyEncoded = btoa(JSON.stringify(newlyGenerated));
                 params.set('cards', newlyEncoded);
@@ -203,7 +202,14 @@
 
             const encodedNumbers = params.get('state');
             if (encodedNumbers) {
-                generatedNumbers = new Set(JSON.parse(atob(encodedNumbers)));
+                generatedNumbers = (() => {
+                    try {
+                        return new Set(JSON.parse(atob(encodedNumbers)));
+                    } catch (e) {
+                        console.error("Error decoding cards from URL: ", e);
+                    }
+                    return new Set();
+                })();
                 for (const number of generatedNumbers) {
                     addChip(number);
                 }

@@ -27,7 +27,6 @@
                 randomNumber = Math.floor(Math.random() * amount_of_numbers) + 1;
             } while (generatedNumbers.has(randomNumber));
 
-            generatedNumbers.add(randomNumber);
             document.getElementById("random-number").textContent = "Generated number: " + randomNumber;
             document.getElementById("share-btn").style.display = "inline";  // Show share button
             return randomNumber;
@@ -38,18 +37,24 @@
         const n_letters_in_alphabet = 26;
 
         function encode(integer) {
-            console.assert(integer >= 1);
-            console.assert(integer < 2 * n_letters_in_alphabet);
+            if (integer < 1 || integer >= 2 * n_letters_in_alphabet) {
+                throw new Error(`Number out of range: ${integer}`);
+            }
             const add_to_small_letters = integer <= n_letters_in_alphabet;
             const starting_letter = add_to_small_letters ? 97 : 65;
             return String.fromCharCode(starting_letter + ((integer - 1) % n_letters_in_alphabet));
         }
 
         function decode(char) {
-            console.assert(char.length === 1);
+            if (char.length !== 1) {
+                throw new Error("Input should be a single character");
+            }
             const integer = char.charCodeAt(0);
-            console.log(integer);
             const is_small_letter = integer >= 97 && integer < (97 + n_letters_in_alphabet);
+            const is_large_letter = integer >= 65 && integer < (65 + n_letters_in_alphabet);
+            if (!is_small_letter && !is_large_letter) {
+                throw new Error("Character out of range for decoding");
+            }
             const starting_letter = is_small_letter ? 97 : 65;
             if (is_small_letter)
                 return integer - starting_letter + 1;
@@ -59,13 +64,13 @@
         // Generate the shareable link
         document.getElementById("share-btn").addEventListener("click", function() {
             const randomNumber = Number(document.getElementById("random-number").textContent.split(": ")[1]);
-            const letter = encode(randomNumber);
-            let share_link = `${window.location.href}`;
-            const query_string_pos = share_link.search('\\?');
-            if (query_string_pos === -1)
-                share_link = share_link.concat('?');
-            share_link = share_link.concat(letter.toString());
-            document.getElementById("link").innerHTML = `<a href="${share_link}">Share this number</a>`;
+
+            console.assert(!generatedNumbers.has(randomNumber));
+            generatedNumbers.add(randomNumber);
+
+            const queryString = Array.from(generatedNumbers).map(encode).join('');
+            history.pushState({}, '', `${window.location.pathname}?${queryString}`);
+            document.getElementById("link").innerHTML = `<a href="${window.location.href}">Share this number</a>`;
         });
 
         // Display the shared number if the link is used
@@ -77,10 +82,12 @@
             search_string = search_string.substring(1); // strip '?'
             for (const letter of search_string) {
                 const integer = decode(letter);
-                console.assert(!generatedNumbers.has(integer));
+                if (generatedNumbers.has(integer)) {
+                    console.warn(`Number ${integer} has already been generated!`);
+                }
                 generatedNumbers.add(integer);
             }
-            document.getElementById("random-number").textContent = "Previously generated: " + Array.from(generatedNumbers).join(', ');
+            document.getElementById("random-number").textContent = "Previously generated numbers: " + Array.from(generatedNumbers).join(', ');
         };
     </script>
 </body>

@@ -149,6 +149,15 @@ function shuffle(array) {
 		return array;
 }
 
+function updateURLParams(key, value) {
+  const params = new URLSearchParams(window.location.search);
+  if (value !== undefined) {
+    params.set(key, value);
+  } else {
+    params.delete(key);
+  }
+  history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+}
 
 function handleCellClick(number) {
 	if (currentNumber) {
@@ -161,9 +170,7 @@ function handleCellClick(number) {
 	generatedNumbers.add(number);
 
 	const state = encode_state(generatedNumbers);
-	let params = new URLSearchParams(window.location.search);
-	params.set('state', state);
-	history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+	updateURLParams('state', state);
 
 	document.getElementById("random-number").textContent = "Your number: " + number;
 }
@@ -262,10 +269,8 @@ function generateRandomNumber() {
 		generatedNumbers.add(randomNumber);
 
 		const state = encode_state(generatedNumbers);
-		let params = new URLSearchParams(window.location.search);
-		params.set('state', state);
-		history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
-
+		updateURLParams('state', state);
+	
 		document.getElementById("random-number").textContent = "Your number: " + randomNumber;
 }
 

@@ -172,7 +172,7 @@ function addClickListenersToCells() {
 	cards.forEach(card => {
 			const cells = card.querySelectorAll('.cell');
 			cells.forEach(cell => {
-					if (cell.dataset.number && !cell.classList.contains('chip')) {
+					if (cell.dataset.number && !cell.querySelector('.chip')) {
 							cell.addEventListener('click', function() {
 									const number = Number(cell.dataset.number);
 									handleCellClick(number);
@@ -207,7 +207,6 @@ function displayCards(generated_cards) {
 				document.getElementById('cards-container').appendChild(card);
 				cards.push(card);
 		}
-		addClickListenersToCells();
 }
 
 function generateRawCards() {
@@ -342,6 +341,8 @@ window.onload = function() {
 						addChip(number);
 				}
 		}
+
+		addClickListenersToCells();
 };
 
 function copyLinkToClipBoard() {

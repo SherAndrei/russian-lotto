@@ -5,16 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Russian Lotto</title>
     <style>
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f5f7fa, #e9b59f);
+            background-size: cover;
+            background-attachment: fixed; /* Keeps the background fixed even when scrolling */
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
         #cards-container {
             display: flex;
-            flex-direction: column; /* Stack cards vertically */
-            align-items: center;    /* Center cards horizontally */
+            flex-direction: column;
+            align-items: center;
         }
 
         .card {
             margin: 10px;
-            border: 2px solid #000;
-            padding: 10px;
+            border: 2px solid #333;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: white;
         }
 
         .row {
@@ -22,23 +46,44 @@
         }
 
         .cell {
-            width: 30px;
-            height: 30px;
-            border: 1px solid #000;
+            width: 40px;
+            height: 40px;
+            border: 1px solid #999;
             display: flex;
             justify-content: center;
             align-items: center;
             margin: 2px;
+            font-weight: bold;
+            font-size: 1.2em;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .cell:hover {
+            background-color: #f0f0f0;
+            transform: scale(1.1);
         }
 
         .chip {
             background-color: green;
+            opacity: 0.8;
             color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            position: absolute; /* Position chip over the cell */
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none; /* Prevent interaction with the chip */
         }
 
-        /* Highlight animation */
         .highlight {
-            animation: highlight-animation 1.5s ease-in-out;
+            animation: highlight-animation 1s ease-in-out;
+            z-index: 1; /* Ensure the chip is on top */
         }
 
         @keyframes highlight-animation {
@@ -47,45 +92,62 @@
             100% { background-color: green; color: white; }
         }
 
-        #generate-btn {
-            margin: 20px;
+        /* Button Styling */
+        button {
+            padding: 10px 20px;
+            font-size: 1.2em;
+            color: white;
+            background-color: #333;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            margin: 10px;
         }
 
-        #copy-link {
-            margin: 20px;
+        button:hover {
+            background-color: #555;
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #random-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-top: 20px;
+            color: #333;
+            height: 40px;  /* Fixed height to prevent layout shifting */
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         /* Responsive design */
         @media (max-width: 600px) {
             .cell {
-                width: 20px;
-                height: 20px;
+                width: 30px;
+                height: 30px;
             }
 
             .card {
-                padding: 5px;
+                padding: 10px;
             }
 
-            #cards-container {
-                flex-direction: column;
-            }
-
-            #generate-btn {
-                margin: 10px;
-            }
-
-            #copy-link {
-                margin: 10px;
+            button {
+                font-size: 1em;
             }
         }
     </style>
 </head>
 <body>
 
-    <h1>Russian Lotto Game</h1>
+    <h1>Russian Lotto</h1>
     <button id="generate-btn">Generate Number</button>
     <button id="copy-link">Copy link</button>
-    <p id="random-number"></p>
+    <p id="random-number"></p> <!-- This element now has a fixed height -->
     <div id="cards-container"></div>
 
     <script>
@@ -96,11 +158,10 @@
         const num_cards = Math.ceil(amount_of_numbers / (rows_per_card * numbers_per_row));
 
         let generatedNumbers = new Set();
-        let drawnNumber = null;  // Keep track of the current number
+        let drawnNumber = null;
         let uniqueNumbers = shuffle(Array.from({ length: amount_of_numbers }, (_, i) => i + 1));
         const cards = [];
 
-        // Helper function to shuffle array elements
         function shuffle(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -157,7 +218,7 @@
                         let colIndex;
                         do {
                             colIndex = Math.floor(Math.random() * columns_per_card);
-                        } while (cols[colIndex] !== null); 
+                        } while (cols[colIndex] !== null);
                         cols[colIndex] = num;
                     });
 
@@ -168,7 +229,6 @@
             return cards;
         }
 
-        // Generate a random number and update the board
         function generateRandomNumber() {
             if (generatedNumbers.size === amount_of_numbers) {
                 alert("All numbers have been generated!");
@@ -193,7 +253,7 @@
             params.set('state', state);
             history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
 
-            document.getElementById("random-number").textContent = "Generated number: " + randomNumber;
+            document.getElementById("random-number").textContent = "Your number: " + randomNumber;
         }
 
         function removeChip(number) {
@@ -201,7 +261,10 @@
                 const cells = card.querySelectorAll('.cell');
                 cells.forEach(cell => {
                     if (Number(cell.dataset.number) === number) {
-                        cell.classList.remove('chip');
+                        const chip = cell.querySelector('.chip');
+                        if (chip) {
+                            cell.removeChild(chip); // Remove the chip element
+                        }
                     }
                 });
             });
@@ -212,9 +275,12 @@
                 const cells = card.querySelectorAll('.cell');
                 cells.forEach(cell => {
                     if (Number(cell.dataset.number) === number) {
-                        cell.classList.add('chip');
-                        if (add_highlight)
-                            cell.classList.add('highlight');
+                        const chip = document.createElement('div');
+                        chip.classList.add('chip');
+                        if (add_highlight) {
+                            chip.classList.add('highlight');
+                        }
+                        cell.appendChild(chip);
                     }
                 });
             });
@@ -222,7 +288,6 @@
 
         document.getElementById('generate-btn').addEventListener('click', generateRandomNumber);
 
-        // On load, parse the URL to restore the board
         window.onload = function() {
             let params = new URLSearchParams(window.location.search);
             const encodedCards = params.get('cards');
@@ -264,7 +329,7 @@
             }, function(err) {
                 alert('Failed to copy text: ', err);
             });
-        };
+        }
 
         document.getElementById('copy-link').addEventListener('click', copyLinkToClipBoard);
 

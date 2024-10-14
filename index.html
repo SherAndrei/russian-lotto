@@ -36,8 +36,47 @@
             color: white;
         }
 
-        #generate-btn, #share-btn {
+        /* Highlight animation */
+        .highlight {
+            animation: highlight-animation 1.5s ease-in-out;
+        }
+
+        @keyframes highlight-animation {
+            0% { background-color: yellow; }
+            50% { background-color: rgb(132, 255, 0); color: white; }
+            100% { background-color: green; color: white; }
+        }
+
+        #generate-btn {
             margin: 20px;
+        }
+
+        #copy-link {
+            margin: 20px;
+        }
+
+        /* Responsive design */
+        @media (max-width: 600px) {
+            .cell {
+                width: 20px;
+                height: 20px;
+            }
+
+            .card {
+                padding: 5px;
+            }
+
+            #cards-container {
+                flex-direction: column;
+            }
+
+            #generate-btn {
+                margin: 10px;
+            }
+
+            #copy-link {
+                margin: 10px;
+            }
         }
     </style>
 </head>
@@ -45,6 +84,7 @@
 
     <h1>Russian Lotto Game</h1>
     <button id="generate-btn">Generate Number</button>
+    <button id="copy-link">Copy link</button>
     <p id="random-number"></p>
     <div id="cards-container"></div>
 
@@ -145,7 +185,7 @@
 
             drawnNumber = randomNumber;
 
-            addChip(randomNumber);
+            addChip(randomNumber, true);
             generatedNumbers.add(randomNumber);
 
             const state = btoa(JSON.stringify(Array.from(generatedNumbers)));
@@ -167,12 +207,14 @@
             });
         }
 
-        function addChip(number) {
+        function addChip(number, add_highlight = false) {
             cards.forEach(card => {
                 const cells = card.querySelectorAll('.cell');
                 cells.forEach(cell => {
                     if (Number(cell.dataset.number) === number) {
                         cell.classList.add('chip');
+                        if (add_highlight)
+                            cell.classList.add('highlight');
                     }
                 });
             });
@@ -215,6 +257,17 @@
                 }
             }
         };
+
+        function copyLinkToClipBoard() {
+            navigator.clipboard.writeText(window.location.href).then(function() {
+                alert('Copied to clipboard!');
+            }, function(err) {
+                alert('Failed to copy text: ', err);
+            });
+        };
+
+        document.getElementById('copy-link').addEventListener('click', copyLinkToClipBoard);
+
     </script>
 </body>
 </html>

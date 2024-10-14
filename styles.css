@@ -124,6 +124,11 @@ button:active {
 			height: 30px;
 	}
 
+	.chip {
+		width: 30px;
+		height: 30px;
+	}
+
 	.card {
 			padding: 10px;
 	}

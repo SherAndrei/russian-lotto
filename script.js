@@ -9,6 +9,79 @@ let drawnNumber = null;
 let uniqueNumbers = shuffle(Array.from({ length: amount_of_numbers }, (_, i) => i + 1));
 const cards = [];
 
+const nLetterInAlphabet = 26;
+
+function encode_one(integer) {
+		console.assert(integer >= 1);
+		console.assert(integer < 2 * nLetterInAlphabet);
+		const addToSmallLetters = integer <= nLetterInAlphabet;
+		const startingLetter = addToSmallLetters ? 97 : 65;
+		return String.fromCharCode(startingLetter + ((integer - 1) % nLetterInAlphabet));
+}
+
+function decode_one(char) {
+		console.assert(char.length === 1);
+		const integer = char.charCodeAt(0);
+		if (integer === 48) {
+			return null;
+		}
+		const isSmallLetter = integer >= 97 && integer < (97 + nLetterInAlphabet);
+		const startingLetter = isSmallLetter ? 97 : 65;
+		if (isSmallLetter)
+				return integer - startingLetter + 1;
+		return integer - startingLetter + 1 + nLetterInAlphabet;
+}
+
+function encode_cards(cards) {
+	const int_array = cards.flat(Infinity);
+	result = new String();
+	for (const num of int_array) {
+		if (!num) {
+			result = result.concat(Number(0).toString());
+			continue;
+		}
+		result = result.concat(encode_one(num));
+	}
+	return result;
+}
+
+function decode_cards(encodedString) {
+	let cards = [];
+	for (let i = 0; i < encodedString.length;) {
+		let current_card = []
+		for (let j = 0; j < rows_per_card; j += 1)  {
+			let current_row = [];
+			for (let k = 0; k < columns_per_card; k += 1, i += 1) {
+				current_row.push(decode_one(encodedString[i]));
+			}
+			current_card.push(current_row);
+		}
+		cards.push(current_card);
+	}
+	return cards;
+}
+
+function encode_state(generatedNumbers) {
+	result = new String();
+	for (const num of generatedNumbers) {
+		result = result.concat(encode_one(num));
+	}
+	return result;
+}
+
+function decode_state(encodedString) {
+	let parsedNumbers = new Set();
+	for (let i = 0; i < encodedString.length; i += 1) {
+		const newNumber = decode_one(encodedString[i]);
+		if (parsedNumbers.has(newNumber)) {
+			console.warn(`Duplicate number occured ${newNumber}`);
+		} else {
+			parsedNumbers.add(newNumber);
+		}
+	}
+	return parsedNumbers;
+}
+
 function shuffle(array) {
 		for (let i = array.length - 1; i > 0; i--) {
 				const j = Math.floor(Math.random() * (i + 1));
@@ -95,7 +168,7 @@ function generateRandomNumber() {
 		addChip(randomNumber, true);
 		generatedNumbers.add(randomNumber);
 
-		const state = btoa(JSON.stringify(Array.from(generatedNumbers)));
+		const state = encode_state(generatedNumbers);
 		let params = new URLSearchParams(window.location.search);
 		params.set('state', state);
 		history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
@@ -141,13 +214,13 @@ window.onload = function() {
 		const rawCards = (() => {
 				if (encodedCards) {
 						try {
-								return JSON.parse(atob(encodedCards));
+								return decode_cards(encodedCards);
 						} catch (e) {
 								console.error("Error decoding cards from URL: ", e);
 						}
 				}
 				const newlyGenerated = generateRawCards();
-				const newlyEncoded = btoa(JSON.stringify(newlyGenerated));
+				const newlyEncoded = encode_cards(newlyGenerated);
 				params.set('cards', newlyEncoded);
 				history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
 				return newlyGenerated;
@@ -158,7 +231,7 @@ window.onload = function() {
 		if (encodedNumbers) {
 				generatedNumbers = (() => {
 						try {
-								return new Set(JSON.parse(atob(encodedNumbers)));
+								return decode_state(encodedNumbers);
 						} catch (e) {
 								console.error("Error decoding cards from URL: ", e);
 						}

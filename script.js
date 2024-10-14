@@ -104,13 +104,13 @@ function encode_state(generatedNumbers) {
 }
 
 function decode_state(encodedString) {
-	let parsedNumbers = new Set();
+	let parsedNumbers = [];
 	for (let i = 0; i < encodedString.length; i += 1) {
 		const newNumber = decode_one(encodedString[i]);
-		if (parsedNumbers.has(newNumber)) {
+		if (parsedNumbers.includes(newNumber)) {
 			console.warn(`Duplicate number occured ${newNumber}`);
 		} else {
-			parsedNumbers.add(newNumber);
+			parsedNumbers.push(newNumber);
 		}
 	}
 	return parsedNumbers;
@@ -265,7 +265,10 @@ window.onload = function() {
 		if (encodedNumbers) {
 				generatedNumbers = (() => {
 						try {
-								return decode_state(encodedNumbers);
+								const decoded = decode_state(encodedNumbers);
+								if (decoded.length > 0)
+									document.getElementById("random-number").textContent = "Previous number: " + decoded[decoded.length - 1];
+								return new Set(decoded);
 						} catch (e) {
 								console.error("Error decoding cards from URL: ", e);
 						}

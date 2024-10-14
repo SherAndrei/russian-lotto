@@ -12,8 +12,9 @@ const cards = [];
 const nLetterInAlphabet = 26;
 
 function encode_one(integer) {
-		console.assert(integer >= 1);
-		console.assert(integer < 2 * nLetterInAlphabet);
+		if (integer < 1 || integer >= 2 * nLetterInAlphabet) {
+			throw new Error(`Number out of range: ${integer}`);
+		}
 		const addToSmallLetters = integer <= nLetterInAlphabet;
 		const startingLetter = addToSmallLetters ? 97 : 65;
 		return String.fromCharCode(startingLetter + ((integer - 1) % nLetterInAlphabet));
@@ -22,10 +23,11 @@ function encode_one(integer) {
 function decode_one(char) {
 		console.assert(char.length === 1);
 		const integer = char.charCodeAt(0);
-		if (integer === 48) {
-			return null;
-		}
 		const isSmallLetter = integer >= 97 && integer < (97 + nLetterInAlphabet);
+		const isLargeLetter = integer >= 65 && integer < (65 + nLetterInAlphabet);
+		if (!isSmallLetter && !isLargeLetter) {
+			throw new Error(`Character ${char} out of range for decoding`);
+		}
 		const startingLetter = isSmallLetter ? 97 : 65;
 		if (isSmallLetter)
 				return integer - startingLetter + 1;
@@ -35,26 +37,58 @@ function decode_one(char) {
 function encode_cards(cards) {
 	const int_array = cards.flat(Infinity);
 	result = new String();
+	let nZerosInRow = 0;
 	for (const num of int_array) {
 		if (!num) {
-			result = result.concat(Number(0).toString());
+			nZerosInRow += 1;
 			continue;
 		}
-		result = result.concat(encode_one(num));
+		if (nZerosInRow) {
+			result += Number(nZerosInRow).toString();
+			nZerosInRow = 0;
+		}
+		result += encode_one(num);
 	}
 	return result;
 }
 
 function decode_cards(encodedString) {
 	let cards = [];
-	for (let i = 0; i < encodedString.length;) {
+	let i = 0;
+	while (i < encodedString.length) {
 		let current_card = []
+		let remainder = 0;
 		for (let j = 0; j < rows_per_card; j += 1)  {
-			let current_row = [];
-			for (let k = 0; k < columns_per_card; k += 1, i += 1) {
-				current_row.push(decode_one(encodedString[i]));
+			let currentRow = [];
+			for (let k = 0; k < columns_per_card;) {
+				if (i >= encodedString.length) {
+					remainder = columns_per_card - k;
+					currentRow.push(...Array(remainder).fill(null));
+					k += remainder;
+					break;
+				}
+				if (remainder !== 0) {
+					currentRow.push(...Array(remainder).fill(null));
+					k += remainder;
+					remainder = 0;
+					continue;
+				}
+				const integer = encodedString[i].charCodeAt(0);
+				const isNonZeroDigit = integer > 48 && integer < 48 + 10;
+				if (isNonZeroDigit) {
+					let nZerosToPush = integer - 48;
+					if (nZerosToPush > (columns_per_card - k)) {
+						remainder = nZerosToPush - (columns_per_card - k);
+						nZerosToPush = (columns_per_card - k);
+					}
+					currentRow.push(...Array(nZerosToPush).fill(null));
+					k += nZerosToPush, i += 1;
+					continue;
+				}
+				currentRow.push(decode_one(encodedString[i]));
+				k += 1, i += 1;
 			}
-			current_card.push(current_row);
+			current_card.push(currentRow);
 		}
 		cards.push(current_card);
 	}
@@ -62,9 +96,9 @@ function decode_cards(encodedString) {
 }
 
 function encode_state(generatedNumbers) {
-	result = new String();
+	let result = new String();
 	for (const num of generatedNumbers) {
-		result = result.concat(encode_one(num));
+		result += encode_one(num);
 	}
 	return result;
 }

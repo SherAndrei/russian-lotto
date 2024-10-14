@@ -1,15 +1,38 @@
-const amount_of_numbers = 27;
+const default_amount_of_numbers = 27;
+let amount_of_numbers = default_amount_of_numbers;
+
+const nLetterInAlphabet = 26;
+
+function getAmountFromURL() {
+	const params = new URLSearchParams(window.location.search);
+	const amount = parseInt(params.get('amount'), 10);
+
+	if (isNaN(amount)) {
+		return default_amount_of_numbers;
+	}
+
+	if (amount < 1 || amount >= 2 * nLetterInAlphabet) {
+		console.error(`Amount of numbers out of range: ${amount}, fallback to ${default_amount_of_numbers}`);
+		return default_amount_of_numbers;
+	}
+
+	return amount;
+}
+
+amount_of_numbers = getAmountFromURL();
+
+function computeNumCards(n_numbers) {
+	return Math.ceil(n_numbers / (rows_per_card * numbers_per_row));
+}
+
 const numbers_per_row = 5;
 const columns_per_card = 9;
 const rows_per_card = 3;
-const num_cards = Math.ceil(amount_of_numbers / (rows_per_card * numbers_per_row));
+let num_cards = computeNumCards(amount_of_numbers);
 
 let generatedNumbers = new Set();
 let currentNumber = null;
-let uniqueNumbers = shuffle(Array.from({ length: amount_of_numbers }, (_, i) => i + 1));
 const cards = [];
-
-const nLetterInAlphabet = 26;
 
 function encode_one(integer) {
 		if (integer < 1 || integer >= 2 * nLetterInAlphabet) {
@@ -55,6 +78,7 @@ function encode_cards(cards) {
 function decode_cards(encodedString) {
 	let cards = [];
 	let i = 0;
+	let decodedAmountOfNumbers = 0;
 	while (i < encodedString.length) {
 		let current_card = []
 		let remainder = 0;
@@ -86,13 +110,14 @@ function decode_cards(encodedString) {
 					continue;
 				}
 				currentRow.push(decode_one(encodedString[i]));
+				decodedAmountOfNumbers += 1;
 				k += 1, i += 1;
 			}
 			current_card.push(currentRow);
 		}
 		cards.push(current_card);
 	}
-	return cards;
+	return [cards, decodedAmountOfNumbers];
 }
 
 function encode_state(generatedNumbers) {
@@ -188,6 +213,7 @@ function displayCards(generated_cards) {
 function generateRawCards() {
 		let currentIndex = 0;
 		let cards = [];
+		let uniqueNumbers = shuffle(Array.from({ length: amount_of_numbers }, (_, i) => i + 1));
 
 		for (let cardIndex = 0; cardIndex < num_cards; cardIndex++) {
 				card = [];
@@ -281,15 +307,19 @@ window.onload = function() {
 		const encodedCards = params.get('cards');
 		const rawCards = (() => {
 				if (encodedCards) {
-						try {
-								return decode_cards(encodedCards);
-						} catch (e) {
-								console.error("Error decoding cards from URL: ", e);
-						}
+					try {
+						const [decodedCards, decodedAmountOfNumbers] = decode_cards(encodedCards);
+						amount_of_numbers = decodedAmountOfNumbers;
+						num_cards = computeNumCards(amount_of_numbers);
+						return decodedCards;
+					} catch (e) {
+						console.error("Error decoding cards from URL: ", e);
+					}
 				}
 				const newlyGenerated = generateRawCards();
 				const newlyEncoded = encode_cards(newlyGenerated);
 				params.set('cards', newlyEncoded);
+				params.delete('amount');
 				history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
 				return newlyGenerated;
 		})();

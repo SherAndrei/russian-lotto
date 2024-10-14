@@ -5,7 +5,7 @@ const rows_per_card = 3;
 const num_cards = Math.ceil(amount_of_numbers / (rows_per_card * numbers_per_row));
 
 let generatedNumbers = new Set();
-let drawnNumber = null;
+let currentNumber = null;
 let uniqueNumbers = shuffle(Array.from({ length: amount_of_numbers }, (_, i) => i + 1));
 const cards = [];
 
@@ -124,6 +124,39 @@ function shuffle(array) {
 		return array;
 }
 
+
+function handleCellClick(number) {
+	if (currentNumber) {
+			removeChip(currentNumber);
+			generatedNumbers.delete(currentNumber);
+	}
+
+	addChip(number, true);
+	currentNumber = number;
+	generatedNumbers.add(number);
+
+	const state = encode_state(generatedNumbers);
+	let params = new URLSearchParams(window.location.search);
+	params.set('state', state);
+	history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+
+	document.getElementById("random-number").textContent = "Your number: " + number;
+}
+
+function addClickListenersToCells() {
+	cards.forEach(card => {
+			const cells = card.querySelectorAll('.cell');
+			cells.forEach(cell => {
+					if (cell.dataset.number && !cell.classList.contains('chip')) {
+							cell.addEventListener('click', function() {
+									const number = Number(cell.dataset.number);
+									handleCellClick(number);
+							});
+					}
+			});
+	});
+}
+
 function displayCards(generated_cards) {
 		for (let cardIndex = 0; cardIndex < num_cards; cardIndex++) {
 				const card = document.createElement('div');
@@ -149,6 +182,7 @@ function displayCards(generated_cards) {
 				document.getElementById('cards-container').appendChild(card);
 				cards.push(card);
 		}
+		addClickListenersToCells();
 }
 
 function generateRawCards() {
@@ -194,10 +228,10 @@ function generateRandomNumber() {
 				randomNumber = Math.floor(Math.random() * amount_of_numbers) + 1;
 		} while (generatedNumbers.has(randomNumber));
 
-		removeChip(drawnNumber);
-		generatedNumbers.delete(drawnNumber);
+		removeChip(currentNumber);
+		generatedNumbers.delete(currentNumber);
 
-		drawnNumber = randomNumber;
+		currentNumber = randomNumber;
 
 		addChip(randomNumber, true);
 		generatedNumbers.add(randomNumber);
